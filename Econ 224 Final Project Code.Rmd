@@ -1,0 +1,522 @@
+---
+title: "Econ 224 Final Project Preprocessing"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(dplyr)
+library(ivpack)
+library(ISLR)
+library(randomForest)
+library(leaps)
+library(patchwork)
+library(glmnet)
+library(grf)
+#install.packages("stargazer")
+library(stargazer)
+
+```
+
+```{r}
+
+#setwd("C:/Users/jmca9/Documents")
+data <- read_csv("f1data.csv")
+```
+
+```{r}
+data %>% filter(Name == "Pierre Gasly", Year == 2019, `SPONSOR / OWNER` == 'Aston Martin Red Bull Racing') %>%
+  summarize(meanFin = mean(FIN))
+
+data %>% filter(Name == "Pierre Gasly", Year == 2019, `SPONSOR / OWNER` == 'Red Bull Toro Rosso Honda') %>%
+  summarize(meanFin = mean(FIN))
+
+data %>% filter(Name == "Alexander Albon", Year == 2019, `SPONSOR / OWNER` == 'Aston Martin Red Bull Racing') %>%
+  summarize(meanFin = mean(FIN))
+
+data %>% filter(Name == "Alexander Albon", Year == 2019, `SPONSOR / OWNER` == 'Red Bull Toro Rosso Honda') %>%
+  summarize(meanFin = mean(FIN))
+```
+
+```{r}
+data = data %>% select(-MONEY, -STATUS, -'#', -SITE)
+data$LAPS <- gsub(".*/", "", data$LAPS)
+data$LAPS <- as.numeric(data$LAPS)
+data$CARS = as.numeric(data$CARS)
+data$RACE = as.numeric(data$RACE)
+data$LED = as.numeric(data$LED)
+
+#Here we add experience, age and family wealth variables for all drivers. Age is approximate, based on birthyear.
+Verstappen = data %>% filter(Name == "Max Verstappen")%>% 
+                mutate(Exp = Year - 2015, Age = Year - 1997, fWealth = '1')
+
+Hamilton = data %>% filter(Name == "Lewis Hamilton")%>% 
+                mutate(Exp = Year - 2007, Age = Year - 1985, fWealth = '0')
+  
+Bottas = data %>% filter(Name == "Valtteri Bottas")%>% 
+                mutate(Exp = Year - 2013, Age = Year - 1989, fWealth = '1')
+
+Perez = data %>% filter(Name == "Sergio Perez")%>% 
+                mutate(Exp = Year - 2011, Age = Year - 1990, fWealth = '1')
+
+Norris = data %>% filter(Name == "Lando Norris")%>% 
+                mutate(Exp = Year - 2019, Age = Year - 1999, fWealth = '1')
+  
+Leclerc = data %>% filter(Name == "Charles Leclerc")%>% 
+                mutate(Exp = Year - 2018, Age = Year - 1997, fWealth = '1')
+
+Sainzjr = data %>% filter(Name == "Carlos Sainz Jr.")%>% 
+                mutate(Exp = Year - 2015, Age = Year - 1994, fWealth = '1')
+  
+Ricciardo = data %>% filter(Name == "Daniel Ricciardo")%>% 
+                mutate(Exp = Year - 2011, Age = Year - 1989, fWealth = '1')
+  
+Gasly = data %>% filter(Name == "Pierre Gasly")%>% 
+                mutate(Exp = Year - 2017, Age = Year - 1996, fWealth = '1')
+  
+Alonso = data %>% filter(Name == "Fernando Alonso")%>% 
+                mutate(Exp = Year - 2001, Age = Year - 1981, fWealth = '0')
+
+Ocon = data %>% filter(Name == "Esteban Ocon")%>% 
+                mutate(Exp = Year - 2016, Age = Year - 1996, fWealth = '0')
+
+Vettel = data %>% filter(Name == "Sebastian Vettel")%>% 
+                mutate(Exp = Year - 2007, Age = Year - 1987, fWealth = '0')
+
+Stroll = data %>% filter(Name == "Lance Stroll")%>% 
+                mutate(Exp = Year - 2017, Age = Year - 1998, fWealth = '1')
+
+Tsunoda = data %>% filter(Name == "Yuki Tsunoda")%>% 
+                mutate(Exp = Year - 2021, Age = Year - 2000, fWealth = '0')
+
+Russell = data %>% filter(Name == "George Russell")%>% 
+                mutate(Exp = Year - 2019, Age = Year - 1998, fWealth = '0')
+
+Raikkonen = data %>% filter(Name == "Kimi Raikkonen")%>% 
+                mutate(Exp = Year - 2001, Age = Year - 1979, fWealth = '0')
+
+Latifi = data %>% filter(Name == "Nicholas Latifi")%>% 
+                mutate(Exp = Year - 2020, Age = Year - 1995, fWealth = '1')
+
+Giovinazzi = data %>% filter(Name == "Antonio Giovinazzi")%>% 
+                mutate(Exp = Year - 2017, Age = Year - 1993, fWealth = '1')
+
+Schumacher = data %>% filter(Name == "Mick Schumacher")%>% 
+                mutate(Exp = Year - 2019, Age = Year - 1999, fWealth = '1')
+
+Mazepin = data %>% filter(Name == "Nikita Mazepin")%>% 
+                mutate(Exp = Year - 2021, Age = Year - 1999, fWealth = '1')
+
+Grosjean = data %>% filter(Name == "Romain Grosjean")%>% 
+                mutate(Exp = Year - 2009, Age = Year - 1989, fWealth = '1')
+
+Hulkenberg = data %>% filter(Name == "Nico Hulkenberg")%>% 
+                mutate(Exp = Year - 2010, Age = Year - 1987, fWealth = '1')
+
+Kvyat = data %>% filter(Name == "Daniil Kvyat")%>% 
+                mutate(Exp = Year - 2014, Age = Year - 1994, fWealth = '1')
+ 
+Magnussen = data %>% filter(Name == "Kevin Magnussen")%>% 
+                mutate(Exp = Year - 2014, Age = Year - 1992, fWealth = '1')
+
+Kubica = data %>% filter(Name == "Robert Kubica")%>% 
+                mutate(Exp = Year - 2006, Age = Year - 1984, fWealth = '1')
+
+Albon = data %>% filter(Name == "Alexander Albon")%>% 
+                mutate(Exp = Year - 2019, Age = Year - 1996, fWealth = '1')
+
+Hartley = data %>% filter(Name == "Brendon Hartley")%>% 
+                mutate(Exp = Year - 2017, Age = Year - 1989, fWealth = '1')
+
+Massa = data %>% filter(Name == "Felipe Massa")%>% 
+                mutate(Exp = Year - 2002, Age = Year - 1981, fWealth = '1')
+
+Sirotkin = data %>% filter(Name == "Sergey Sirotkin")%>% 
+                mutate(Exp = Year - 2018, Age = Year - 1995, fWealth = '1')
+
+Vandoorne = data %>% filter(Name == "Stoffel Vandoorne")%>% 
+                mutate(Exp = Year - 2016, Age = Year - 1992, fWealth = '1')
+
+Palmer = data %>% filter(Name == "Jolyon Palmer")%>% 
+                mutate(Exp = Year - 2016, Age = Year - 1991, fWealth = '1')
+
+Werhlein = data %>% filter(Name == "Pascal Werhlein")%>% 
+                mutate(Exp = Year - 2016, Age = Year - 1994, fWealth = '1')
+
+Ericsson = data %>% filter(Name == "Marcus Ericssen")%>% 
+                mutate(Exp = Year - 2014, Age = Year - 1990, fwealth = '1')
+
+data <- rbind(Verstappen, Hamilton, Bottas,Perez, Norris, Leclerc,Sainzjr,Ricciardo,
+              Gasly, Alonso, Ocon,Vettel,Stroll,Tsunoda, Russell, Raikkonen, Latifi,
+              Giovinazzi, Schumacher, Mazepin, Grosjean, Hulkenberg, Kvyat, Magnussen,
+              Kubica, Albon, Hartley, Massa, Sirotkin, Vandoorne, Palmer, Werhlein, 
+              Ericsson)
+data$Car = data$`SPONSOR / OWNER`
+data$Car <- gsub("(.*)Red Bull Racing(.*)", "1", data$Car)
+data$Car <- gsub("(.*)AMG Petronas(.*)", "2", data$Car)
+data$Car <- gsub("(.*)Racing Point(.*)", "3", data$Car)
+data$Car <- gsub("(.*)Force India(.*)", "3", data$Car)
+data$Car <- gsub("(.*)McLaren(.*)", "4", data$Car)
+data$Car <- gsub("(.*)Ferrari(.*)", "5", data$Car)
+data$Car <- gsub("(.*)Toro Rosso(.*)", "6", data$Car)
+data$Car <- gsub("(.*)AlphaTauri(.*)", "6", data$Car)
+data$Car <- gsub("(.*)Sauber(.*)", "7", data$Car)
+data$Car <- gsub("(.*)Alfa Romeo(.*)", "7", data$Car)
+data$Car <- gsub("(.*)Aston Martin(.*)", "3", data$Car)
+data$Car <- gsub("(.*)Williams(.*)", "8", data$Car)
+data$Car <- gsub("(.*)Haas(.*)", "9", data$Car)
+data$Car <- gsub("(.*)Renault(.*)", "10", data$Car)
+data$Car <- gsub("(.*)Alpine(.*)", "10", data$Car)
+data$Car = as.numeric(data$Car)
+data$Car <- factor(data$Car,
+                   levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+                   labels = c('RedBull1', 'Mercedes', 'RacingPoint', 
+                              'McLaren', 'Ferrari', 'RedBull2', 'Sauber',
+                              'Williams', 'Haas', 'Renault'))
+data$ageExptrdf = data$Age / (data$Exp + 1)
+#data$Engine = gsub(".*/", "", data$'CHASSIS / ENGINE')
+#data$Chassis = gsub("*/.+", "", data$'CHASSIS / ENGINE')
+data1 = data %>% select(-'SPONSOR / OWNER', -'CHASSIS / ENGINE', -'CARS', -'LED',-'Year',-'Age',-'LAPS',-'Exp',
+                       -'fWealth')
+data = data %>% select(-'SPONSOR / OWNER', -'CHASSIS / ENGINE')
+data = na.omit(data)
+data1 = na.omit(data1)
+data$Name = as.factor(data$Name)
+data1$Name = as.factor(data1$Name)
+data = data %>% mutate(across(is.character, as.factor))
+data1 = data1 %>% mutate(across(is.character, as.factor))
+
+#write.csv(data1,"C:/Users/jmca9/Documents/f1dataupdated.csv", row.names = FALSE)
+```
+
+```{r}
+linear.model <- data1 %>%
+  lm(formula = FIN ~ Car)
+data1 %>%
+  ggplot(aes(y=`FIN`, x=`Car`)) +
+  geom_point() +
+  stat_sum() +
+  theme(text = element_text(size = 10)) 
+summary(linear.model)
+potential_confounders = data %>%
+  select(-Car)
+param <- linear.model$coefficients[2]
+confounders <- vector()
+for (col in colnames(potential_confounders)) {
+  reg.temp <- lm(as.formula(paste("FIN ~ Car+", col)), data = data)
+  p_change <- ((param - reg.temp$coefficients[2]) / param) * 100
+  if (p_change >= 10 || p_change <= -10) {
+    confounders <- c(confounders, col)
+  }
+}
+# No it does not; here are the confounders
+confounders
+
+
+coefficients <- linear.model$coefficients[-c(1)]
+linear.model$coefficients
+class(coef(linear.model))
+coefficients
+class(linear.model$coefficients)
+
+```
+Let's now control for all potential factors:
+```{r}
+linear.model <- data1 %>%
+  lm(formula = FIN ~.)
+summary(linear.model)
+#stargazer(linear.model)
+```
+
+
+<!-- Random Forest to Predict Treatment Effects on New Data: -->
+<!-- ```{r} -->
+<!-- set.seed(1) -->
+<!-- train.indices = sample(nrow(data), 3*nrow(data)/4) -->
+<!-- data.train = data %>% slice(train.indices) -->
+<!-- data.test = data %>% slice(-train.indices) -->
+
+<!-- data.train.treated = data %>%  -->
+<!--   filter(as.numeric(Car) == 1) %>% -->
+<!--   select(-Car) -->
+
+<!-- data.train.control = data %>%  -->
+<!--   filter(as.numeric(Car) == 2) %>% -->
+<!--   select(-Car) -->
+
+<!-- rf.data.treated = randomForest(FIN ~., data.train.control, importance=TRUE) -->
+<!-- rf.data.control = randomForest(FIN ~., data.train.treated, importance=TRUE) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- treatment.effects = predict(rf.data.treated, newdata=data.test) - -->
+<!--   predict(rf.data.control, newdata=data.test) -->
+
+<!-- ATE = mean(treatment.effects) -->
+<!-- print(ATE) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- ggplot() + -->
+<!--   geom_density(aes(x = treatment.effects)) + -->
+<!--   geom_vline(xintercept = ATE, col = "red") + -->
+<!--   labs(x = "treatment effects") -->
+<!-- ``` -->
+
+Double Machine Learning:
+```{r}
+set.seed(1)
+#compute prediction errors for outcome
+rf.data.outcomes = randomForest(FIN ~.- Car, 
+                                   data = data1,
+                                   ntree = 1000,
+                                   importance=TRUE)
+e_y = data1$FIN - predict(rf.data.outcomes)
+
+rf.data.treatment = randomForest(Car ~. -FIN,
+                                    data = data1,
+                                    importance = TRUE,
+                                    ntree = 1000)
+e_d = as.numeric(data1$Car) - as.numeric(predict(rf.data.treatment))
+
+residuals = tibble(e_y = e_y, e_d = e_d)
+
+reg.fit = lm(e_y ~ e_d, data = residuals)
+summary(reg.fit)
+#stargazer(reg.fit)
+```
+
+
+LASSO Prediction for Finishing Position:
+```{r}
+set.seed(1)
+
+X = model.matrix(FIN ~., data1)[,-1]
+y = data1$FIN
+
+lasso.train = glmnet(X, y, alpha=1)
+plot(lasso.train)
+
+lasso.CV = cv.glmnet(X, y, alpha=1)
+
+# LASSO MSE = 19.65
+lasso.CV
+plot(lasso.CV)
+
+optimal.lambda = lasso.CV$lambda.min
+optimal.lambda
+
+lasso.fit = glmnet(X, y, alpha=1)
+predict(lasso.fit, type = 'coefficients', s = optimal.lambda)
+```
+Ridge Regression Prediction for Finishing Position:
+```{r}
+X <- model.matrix(FIN ~ ., data1)[, -1]
+y <- data1$FIN
+lambda.grid <- 10^seq(10, -2, length = 1000)
+ridge.fit <- glmnet(X, y, alpha=0, lambda=lambda.grid)
+
+set.seed(1)
+
+test.indices = sample(1:nrow(X), nrow(X)/4)
+X.test = X[test.indices,]
+X.train = X[-test.indices,]
+y.test = y[test.indices]
+y.train = y[-test.indices]
+
+ridge.train = glmnet(X, y, alpha=0)
+cv.results = cv.glmnet(X, y, nfolds = 10, alpha = 0)
+optimal.lambda = cv.results$lambda.min
+plot(cv.results)
+optimal.lambda
+
+ridge.predict = predict(ridge.train,  x=X.train, y=y.train, s=optimal.lambda, newx=X.test, exact=T)
+test.MSE.ridge = mean((ridge.predict - y.test)^2)
+
+ridge.best = glmnet(X,y, alpha = 0, lambda = optimal.lambda)
+coefficients(ridge.best)
+
+regression.predict = predict(ridge.train, x=X.train, y=y.train, s=0, newx=X.test, exact=T)
+test.MSE.regression = mean((regression.predict - y.test)^2)
+
+# Ridge MSE at optimal lambda = 18.39826
+test.MSE.ridge
+test.MSE.regression
+```
+
+
+Random Forest Prediction for Finishing Position:
+```{r}
+set.seed(1)
+test.indices = sample(nrow(data1), nrow(data1)/4)
+
+data.train = data1 %>%
+  slice(-test.indices)
+data.test = data1 %>%
+  slice(test.indices)
+
+forest.data = randomForest(FIN ~., data.train,
+                             importance=TRUE,
+                             ntree=500)
+forest.data
+
+plot(forest.data)
+
+predict.data = predict(forest.data, newdata=data.test)
+test.outcomes = data.test %>% pull(FIN)
+
+# Random Forest MSE = 18.90588
+mean((predict.data - test.outcomes)^2)
+
+ggplot(,aes(x = predict.data, y = test.outcomes)) +
+  geom_point() +
+  geom_abline(intercept=0) +
+  labs(x = 'Predictions', y = 'Outcomes',
+       title = 'Random Forest: Predicted Values vs. Outcomes')
+
+X = model.matrix(FIN ~., data.train)
+y = data.train %>% pull(FIN)
+
+# Optimal mtry = 4
+tuneRF(X, y, plot=TRUE, trace=TRUE, doBest=TRUE)
+```
+
+Random Forest for Classification:
+```{r}
+# data1$FIN <- factor(data1$FIN)
+# data1
+```
+
+```{r}
+# set.seed(1)
+# test.indices = sample(nrow(data1), nrow(data1)/4)
+# 
+# data.train = data1 %>%
+#   slice(-test.indices)
+# data.test = data1 %>%
+#   slice(test.indices)
+# 
+# forest.data = randomForest(FIN ~., data.train,
+#                            importance=TRUE,
+#                            ntree=500,
+#                            proximity=TRUE)
+# forest.data
+# 
+# plot(forest.data)
+# 
+# predict.data = predict(forest.data, newdata=data.test, type = "response")
+# test.outcomes = data.test %>% pull(FIN)
+# 
+# # Random Forest MSE = 18.90588
+# print(mean((predict.data - test.outcomes)^2))
+# 
+# ggplot(,aes(x = predict.data, y = test.outcomes)) +
+#   geom_point() +
+#   geom_abline(intercept=0) +
+#   labs(x = 'Predictions', y = 'Outcomes',
+#        title = 'Random Forest: Predicted Values vs. Outcomes')
+# 
+# X = model.matrix(FIN ~., data.train)
+# y = data.train %>% pull(FIN)
+# 
+# # Optimal mtry = 6
+# tuneRF(X, y, plot=TRUE, trace=TRUE, doBest=TRUE)
+```
+
+Let's attempt to predict race winner instead through classification:
+```{r}
+data_first <- data1 %>%
+  mutate(Winner = if_else(FIN == 1, 1, 0)) %>%
+  select(-c(FIN))
+data_first$Winner <- data_first$Winner %>%
+  factor()
+data_first
+```
+
+```{r}
+n = nrow(data_first)
+train = sample(n, n/2, replace = FALSE)
+data.train = data_first[train,]
+data.test = data_first[-train,]
+
+logit.fit = glm(Winner ~ ., data = data.train, family = binomial)
+logit.probs = predict(logit.fit, data = data.test, type = "response")
+logit.preds = if_else(logit.probs > 0.5, 1, 0)
+
+table(logit.preds, data.test$Winner)
+```
+
+Using CV to assess the model:
+```{r}
+set.seed(123)
+
+nfolds = 5
+
+#shuffle the data
+n = nrow(data_first)
+data_first = data_first[sample(n),]
+
+#Create equally sized partitions of the indices
+folds = cut(seq(1, nrow(data_first)), breaks = nfolds, labels=FALSE)
+
+#Perform cross validation with nfolds
+error = rep(0, nfolds)
+for(i in 1:nfolds){
+    #Segment data by fold using the which() function 
+    indices = which(folds==i)
+    testData = data_first[indices, ]
+    trainData = data_first[-indices, ]
+    
+    #compute classification predictions
+    logit.fit = glm(Winner ~ ., data = data_first, family = binomial)
+    logit.probs = predict(logit.fit, data = testData, type = "response")
+    logit.preds = if_else(logit.probs > 0.5, 1, 0)
+    
+    #compute average number of wrong predictions
+    error[i] = mean(abs(as.numeric(logit.preds) - as.numeric(testData$Winner)) > 0)
+}
+
+cv.error = mean(error)
+print(cv.error)
+```
+
+```{r}
+data_first %>%
+  filter(Winner == 1)
+```
+
+Using family wealth as an instrument for Car:
+<!-- # ```{r} -->
+<!-- # data -->
+<!-- #  -->
+<!-- # iv.model <- ivreg(FIN ~ Car | fWealth, data = data) -->
+<!-- # summary(iv.model) -->
+<!-- #  -->
+<!-- # linear.model_2 <- lm(FIN ~ fWealth, data = data) -->
+<!-- # param_2 <- linear.model_2$coefficients[2] -->
+<!-- # confounders_2 <- vector() -->
+<!-- # for (col in colnames(potential_confounders)) { -->
+<!-- #   reg.temp <- lm(as.formula(paste("FIN ~ fWealth + ", col)), data = data) -->
+<!-- #   p_change <- ((param_2 - reg.temp$coefficients[2]) / param_2) * 100 -->
+<!-- #   if (p_change >= 10 || p_change <= -10) { -->
+<!-- #     confounders_2 <- c(confounders_2, col) -->
+<!-- #   } -->
+<!-- # } -->
+<!-- #  -->
+<!-- #  -->
+<!-- # confounders_2 -->
+<!-- ``` -->
+
+```{r}
+iv_controlled.model <- ivreg(FIN ~.-fWealth-LAPS-LED-Year| fWealth +.-FIN-LAPS-LED-Year, data = data)
+summary(iv_controlled.model)
+#stargazer(iv_controlled.model)
+```
+
+
